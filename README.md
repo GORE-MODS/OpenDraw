@@ -4,7 +4,7 @@
 
 # OpenDraw
 
-# Not tested yet!
+# For now only for Windows 11 sorry
 A Open-Source Drawing tool like the ones that streamers and YouTube creators use in their videos.
 
 # Want to get beta's? Well! Just go to our patreon: [Patreon](https://www.patreon.com/cw/GOREMODS)
