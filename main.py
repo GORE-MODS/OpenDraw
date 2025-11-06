@@ -1,4 +1,4 @@
-# Fixed? idk untested rn
+# project has been discontinued. you can try to fix it.
 # OpenDraw - Streamer desktop drawing overlay for Windows 11
 # Requires: pip install PyQt5 Pillow
 import sys, os, ctypes
