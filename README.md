@@ -7,4 +7,4 @@
 # Not tested yet!
 A Open-Source Drawing tool like the ones that streamers and YouTube creators use in their videos.
 
-# Want to get beta's? Well! Just go to our patreon: [Patreon](https://patreon.com/GOREMODS?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)
+# Want to get beta's? Well! Just go to our patreon: [Patreon](https://www.patreon.com/cw/GOREMODS)
