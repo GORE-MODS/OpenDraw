@@ -105,3 +105,8 @@ Toolbar (top-left when visible) has buttons for the same stuff + extra colors.
    Rust + Tauri port (tiny <10MB binary)
 
    Fork it, mod it, make it yours. No limits.
+   # License
+   
+   Just don't sue me if your Twitch ban comes from drawing "sus things" on stream.
+   MIT License – do whatever the fuck you want.
+   Made with ❤ by GORE
