@@ -90,7 +90,7 @@ Toolbar (top-left when visible) has buttons for the same stuff + extra colors.
 
    # Planned / Want to Add? (DM me on discord.)
 
-   System tray icon + menu (quit, hotkey remap, settings)
+   System tray icon + menu (quit, settings, etc) (Added in V1.1)
    
    Save/load drawings as transparent PNG (hotkey?)
    
