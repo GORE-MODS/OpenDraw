@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>OpenDraw - jessie edition</title>
+  <style>
+    body { margin:0; overflow:hidden; background:transparent; }
+    canvas { display:block; cursor: crosshair; }
+    #toolbar {
+      position: absolute;
+      top: 10px; left: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      user-select: none;
+      z-index: 999;
+    }
+    button { margin: 4px; padding: 6px 10px; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <div id="toolbar">
+    <button onclick="setColor('#ff0000')">Red</button>
+    <button onclick="setColor('#0000ff')">Blue</button>
+    <button onclick="setColor('#ffffff')">White</button>
+    <button onclick="setColor('#00ff00')">Green</button>
+    <button onclick="setSize(4)">Thin</button>
+    <button onclick="setSize(16)">Thick</button>
+    <button onclick="clearCanvas()">Clear</button>
+    <button onclick="toggleClickThrough()">Click-Through</button>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let isDrawing = false;
+    let currentColor = '#ff0000';
+    let brushSize = 8;
+
+    // Undo/redo stacks
+    let history = [];
+    let redoStack = [];
+
+    // Save current canvas state to history
+    function saveState() {
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      history.push(data);
+      redoStack = []; // clear redo when new action
+      // Limit history to 20 steps to save memory
+      if (history.length > 20) history.shift();
+    }
+
+    function resizeCanvas() {
+      // Save current drawing before resize
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      tempCanvas.getContext('2d').drawImage(canvas, 0, 0);
+
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      // Restore drawing after resize
+      ctx.drawImage(tempCanvas, 0, 0);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      saveState(); // save before starting new stroke
+
+      ctx.beginPath();
+      ctx.moveTo(e.clientX, e.clientY);
+      ctx.lineTo(e.clientX, e.clientY); // tiny dot so single click works
+      ctx.strokeStyle = currentColor;
+      ctx.lineWidth = brushSize;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isDrawing) return;
+
+      ctx.lineTo(e.clientX, e.clientY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(e.clientX, e.clientY);
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isDrawing = false;
+      ctx.beginPath(); // reset path so next stroke doesn't connect
+    });
+
+    canvas.addEventListener('mouseout', () => {
+      isDrawing = false;
+      ctx.beginPath();
+    });
+
+    // Undo / Redo functions
+    function undo() {
+      if (history.length < 1) return;
+      const current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      redoStack.push(current);
+
+      const previous = history.pop();
+      ctx.putImageData(previous, 0, 0);
+    }
+
+    function redo() {
+      if (redoStack.length < 1) return;
+      const current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      history.push(current);
+
+      const next = redoStack.pop();
+      ctx.putImageData(next, 0, 0);
+    }
+
+    function setColor(color) {
+      currentColor = color;
+    }
+
+    function setSize(size) {
+      brushSize = size;
+    }
+
+    function clearCanvas() {
+      saveState();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function toggleClickThrough() {
+      ipcRenderer.send('set-clickthrough', true);
+      setTimeout(() => ipcRenderer.send('set-clickthrough', false), 80);
+    }
+
+    // Hotkey listeners from main process
+    ipcRenderer.on('clear-canvas', clearCanvas);
+    ipcRenderer.on('set-color', (event, color) => setColor(color));
+    ipcRenderer.on('set-size', (event, size) => setSize(size));
+    ipcRenderer.on('toggle-clickthrough', toggleClickThrough);
+    ipcRenderer.on('undo', undo);
+    ipcRenderer.on('redo', redo);
+
+    // Keyboard shortcuts inside the window (for undo/redo when focused)
+    window.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        undo();
+      }
+      if (e.ctrlKey && e.key === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    });
+  </script>
+</body>
+</html>
