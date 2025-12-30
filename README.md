@@ -44,8 +44,8 @@ Toolbar (top-left when visible) has buttons for the same stuff + extra colors.
 
 1. Clone or download this repo
    ```bash
-   git clone https://github.com/YOUR_USERNAME/opendraw.git
-   cd opendraw
+   git clone https://github.com/GORE-MODS/OpenDraw
+   cd OpenDraw
    ```
 2. Install dependencies
    ```bash
