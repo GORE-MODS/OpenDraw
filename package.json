@@ -2,10 +2,9 @@
   "name": "opendraw",
   "version": "1.0.0",
   "main": "main.js",
-  "type": "commonjs",
   "scripts": {
-    "start": "electron . --enable-transparent-visuals --disable-gpu --ozone-platform=x11"
-  },
+  "start": "electron . --enable-transparent-visuals --disable-gpu --ozone-platform=x11 --no-sandbox"
+},
   "dependencies": {
     "electron": "^39.2.7",
     "electron-store": "^8.2.0"

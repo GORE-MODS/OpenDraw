@@ -2,21 +2,15 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>OpenDraw - jessie edition</title>
+  <title>OpenDraw - V1.1</title>
   <style>
     body { margin:0; overflow:hidden; background:transparent; }
-    canvas { display:block; cursor: crosshair; }
+    canvas { display:block; cursor:crosshair; }
     #toolbar {
-      position: absolute;
-      top: 10px; left: 10px;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      padding: 10px;
-      border-radius: 8px;
-      user-select: none;
-      z-index: 999;
+      position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.7); color:white;
+      padding:10px; border-radius:8px; user-select:none; z-index:999;
     }
-    button { margin: 4px; padding: 6px 10px; }
+    button { margin:4px; padding:6px 10px; }
   </style>
 </head>
 <body>
@@ -37,128 +31,69 @@
     const { ipcRenderer } = require('electron');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-
     let isDrawing = false;
     let currentColor = '#ff0000';
     let brushSize = 8;
-
-    // Undo/redo stacks
     let history = [];
     let redoStack = [];
 
-    // Save current canvas state to history
     function saveState() {
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      history.push(data);
-      redoStack = []; // clear redo when new action
-      // Limit history to 20 steps to save memory
-      if (history.length > 20) history.shift();
+      history.push(ctx.getImageData(0,0,canvas.width,canvas.height));
+      redoStack = [];
+      if (history.length > 30) history.shift();
     }
 
     function resizeCanvas() {
-      // Save current drawing before resize
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
-      tempCanvas.getContext('2d').drawImage(canvas, 0, 0);
-
+      const temp = document.createElement('canvas');
+      temp.width = canvas.width; temp.height = canvas.height;
+      temp.getContext('2d').drawImage(canvas,0,0);
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-
-      // Restore drawing after resize
-      ctx.drawImage(tempCanvas, 0, 0);
+      ctx.drawImage(temp,0,0);
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    canvas.addEventListener('mousedown', (e) => {
+    canvas.addEventListener('mousedown', e => {
       isDrawing = true;
-      saveState(); // save before starting new stroke
-
+      saveState();
       ctx.beginPath();
       ctx.moveTo(e.clientX, e.clientY);
-      ctx.lineTo(e.clientX, e.clientY); // tiny dot so single click works
+      ctx.lineTo(e.clientX, e.clientY);
       ctx.strokeStyle = currentColor;
       ctx.lineWidth = brushSize;
       ctx.lineCap = 'round';
       ctx.stroke();
     });
 
-    canvas.addEventListener('mousemove', (e) => {
+    canvas.addEventListener('mousemove', e => {
       if (!isDrawing) return;
-
       ctx.lineTo(e.clientX, e.clientY);
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(e.clientX, e.clientY);
     });
 
-    canvas.addEventListener('mouseup', () => {
-      isDrawing = false;
-      ctx.beginPath(); // reset path so next stroke doesn't connect
-    });
+    canvas.addEventListener('mouseup', () => { isDrawing = false; ctx.beginPath(); });
+    canvas.addEventListener('mouseout', () => { isDrawing = false; ctx.beginPath(); });
 
-    canvas.addEventListener('mouseout', () => {
-      isDrawing = false;
-      ctx.beginPath();
-    });
+    function undo() { if (history.length) { redoStack.push(ctx.getImageData(0,0,canvas.width,canvas.height)); ctx.putImageData(history.pop(),0,0); } }
+    function redo() { if (redoStack.length) { history.push(ctx.getImageData(0,0,canvas.width,canvas.height)); ctx.putImageData(redoStack.pop(),0,0); } }
 
-    // Undo / Redo functions
-    function undo() {
-      if (history.length < 1) return;
-      const current = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      redoStack.push(current);
-
-      const previous = history.pop();
-      ctx.putImageData(previous, 0, 0);
-    }
-
-    function redo() {
-      if (redoStack.length < 1) return;
-      const current = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      history.push(current);
-
-      const next = redoStack.pop();
-      ctx.putImageData(next, 0, 0);
-    }
-
-    function setColor(color) {
-      currentColor = color;
-    }
-
-    function setSize(size) {
-      brushSize = size;
-    }
-
-    function clearCanvas() {
-      saveState();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-
+    function setColor(c) { currentColor = c; }
+    function setSize(s) { brushSize = s; }
+    function clearCanvas() { saveState(); ctx.clearRect(0,0,canvas.width,canvas.height); }
     function toggleClickThrough() {
       ipcRenderer.send('set-clickthrough', true);
       setTimeout(() => ipcRenderer.send('set-clickthrough', false), 80);
     }
 
-    // Hotkey listeners from main process
     ipcRenderer.on('clear-canvas', clearCanvas);
-    ipcRenderer.on('set-color', (event, color) => setColor(color));
-    ipcRenderer.on('set-size', (event, size) => setSize(size));
+    ipcRenderer.on('set-color', (_,c) => setColor(c));
+    ipcRenderer.on('set-size', (_,s) => setSize(s));
     ipcRenderer.on('toggle-clickthrough', toggleClickThrough);
     ipcRenderer.on('undo', undo);
     ipcRenderer.on('redo', redo);
-
-    // Keyboard shortcuts inside the window (for undo/redo when focused)
-    window.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.key === 'z') {
-        e.preventDefault();
-        undo();
-      }
-      if (e.ctrlKey && e.key === 'y') {
-        e.preventDefault();
-        redo();
-      }
-    });
   </script>
 </body>
 </html>
