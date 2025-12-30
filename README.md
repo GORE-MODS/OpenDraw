@@ -91,11 +91,17 @@ Toolbar (top-left when visible) has buttons for the same stuff + extra colors.
    # Planned / Want to Add? (DM me on discord.)
 
    System tray icon + menu (quit, hotkey remap, settings)
+   
    Save/load drawings as transparent PNG (hotkey?)
+   
    Arrow tool / straight lines (hold Shift)
+   
    Opacity slider
+   
    Text tool / meme stamps
+   
    Tablet pressure sensitivity
+   
    Rust + Tauri port (tiny <10MB binary)
 
    Fork it, mod it, make it yours. No limits.
