@@ -4,7 +4,7 @@
 
 # OpenDraw
 
-This will now only be able to download/install OpenDraw. The source code will always be here.
+This will now only be able to download/install OpenDraw on snap/deb files. The source code will always be here.
 Transparent, always-on-top drawing tool built for streamers, YouTubers, rage artists, and anyone who needs to circle, draw arrows, or scribble random stuff live on stream without green screen hacks.
 
 Think Epic Pen / OBS Draw plugin but **open-source**, free, no ads, no telemetry, no corporate bullshit. Works perfectly with OBS/Streamlabs (Window Capture or Display Capture → add Chroma Key if needed, but transparency usually just works).
