@@ -2,98 +2,330 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>OpenDraw - V1.1</title>
+  <title>OpenDraw - V1.2</title>
   <style>
-    body { margin:0; overflow:hidden; background:transparent; }
-    canvas { display:block; cursor:crosshair; }
-    #toolbar {
-      position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.7); color:white;
-      padding:10px; border-radius:8px; user-select:none; z-index:999;
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: Arial, sans-serif;
     }
-    button { margin:4px; padding:6px 10px; }
+
+    #canvas {
+      display: block;
+      cursor: crosshair;
+    }
+
+    #toolbar {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(30, 30, 40, 0.92);
+      backdrop-filter: blur(12px);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      user-select: none;
+      z-index: 1000;
+      transition: transform 0.2s ease;
+    }
+
+    #toolbar:hover {
+      transform: translateY(-2px);
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .color-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .color-btn:hover {
+      transform: scale(1.15);
+      border-color: rgba(255,255,255,0.4);
+    }
+
+    .color-btn.active {
+      border-color: white;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+    }
+
+    .size-group, .tools-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button, .size-btn {
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.15s ease;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    button:hover, .size-btn:hover {
+      background: rgba(255,255,255,0.2);
+      transform: translateY(-1px);
+    }
+
+    button.active, .size-btn.active {
+      background: rgba(255,255,255,0.35);
+      font-weight: bold;
+    }
+
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #ccc;
+      font-size: 13px;
+    }
+
+    input[type="range"] {
+      accent-color: #ff4d4d;
+      width: 140px;
+    }
+
+    .slider-value {
+      min-width: 40px;
+      text-align: right;
+      font-weight: bold;
+    }
+
+    /* LOADING SCREEN */
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 1;
+      transition: opacity 1s ease-in-out;
+      pointer-events: none;
+    }
+
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #loading img {
+      width: 200px;
+      height: auto;
+      margin-bottom: 20px;
+    }
+
+    #loading-text {
+      font-size: 2rem;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
+  <!-- Loading Screen -->
+  <div id="loading">
+    <img src="Logo.png" alt="OpenDraw Logo" />
+    <div id="loading-text">Loading OpenDraw...</div>
+  </div>
+
   <canvas id="canvas"></canvas>
 
   <div id="toolbar">
-    <button onclick="setColor('#ff0000')">Red</button>
-    <button onclick="setColor('#0000ff')">Blue</button>
-    <button onclick="setColor('#ffffff')">White</button>
-    <button onclick="setColor('#00ff00')">Green</button>
-    <button onclick="setSize(4)">Thin</button>
-    <button onclick="setSize(16)">Thick</button>
-    <button onclick="clearCanvas()">Clear</button>
-    <button onclick="toggleClickThrough()">Click-Through</button>
+    <div class="color-grid">
+      <div class="color-btn" style="background:#ff0000" onclick="setColor('#ff0000')" title="Red"></div>
+      <div class="color-btn" style="background:#0000ff" onclick="setColor('#0000ff')" title="Blue"></div>
+      <div class="color-btn" style="background:#ffffff" onclick="setColor('#ffffff')" title="White"></div>
+      <div class="color-btn" style="background:#00ff00" onclick="setColor('#00ff00')" title="Green"></div>
+    </div>
+
+    <div class="size-group">
+      <button class="size-btn" onclick="setSize(4)">Thin</button>
+      <button class="size-btn" onclick="setSize(16)">Thick</button>
+    </div>
+
+    <div class="slider-group">
+      <label>Opacity:</label>
+      <input type="range" min="0" max="1" step="0.05" value="1" id="opacitySlider">
+      <span class="slider-value" id="opacityValue">1.0</span>
+    </div>
+
+    <div class="tools-group">
+      <button onclick="clearCanvas()">Clear</button>
+      <button onclick="toggleClickThrough()">Click-Through</button>
+    </div>
   </div>
 
-  <script>
-    const { ipcRenderer } = require('electron');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    let isDrawing = false;
-    let currentColor = '#ff0000';
-    let brushSize = 8;
-    let history = [];
-    let redoStack = [];
+<script>
+  const { ipcRenderer } = require('electron');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const loading = document.getElementById('loading');
 
-    function saveState() {
-      history.push(ctx.getImageData(0,0,canvas.width,canvas.height));
-      redoStack = [];
-      if (history.length > 30) history.shift();
+  let isDrawing = false;
+  let currentColor = '#ff0000';
+  let brushSize = 8;
+  let currentOpacity = 1.0;
+  let hasBeenShown = false;
+
+  // Undo/redo history
+  let history = [];
+  let redoStack = [];
+
+  function saveState() {
+    history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    redoStack = [];
+    if (history.length > 30) history.shift();
+  }
+
+  function resizeCanvas() {
+    const temp = document.createElement('canvas');
+    temp.width = canvas.width;
+    temp.height = canvas.height;
+    temp.getContext('2d').drawImage(canvas, 0, 0);
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    ctx.drawImage(temp, 0, 0);
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // Start drawing ONLY on left mouse down
+  canvas.addEventListener('mousedown', e => {
+    if (e.button !== 0) return; // Ignore right/middle clicks
+    isDrawing = true;
+    saveState(); // Save before stroke
+    ctx.beginPath();
+    ctx.moveTo(e.clientX, e.clientY);
+    ctx.lineTo(e.clientX, e.clientY);
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = currentOpacity;
+    ctx.stroke();
+  });
+
+  // Draw ONLY while holding left button
+  canvas.addEventListener('mousemove', e => {
+    if (!isDrawing) return;
+    ctx.lineTo(e.clientX, e.clientY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.clientX, e.clientY);
+  });
+
+  // Stop drawing immediately on release or leaving canvas
+  const stopDrawing = () => {
+    isDrawing = false;
+    ctx.beginPath(); // Reset path so no connection next time
+  };
+
+  canvas.addEventListener('mouseup', stopDrawing);
+  canvas.addEventListener('mouseleave', stopDrawing); // Better than 'mouseout' for canvas edge
+  canvas.addEventListener('contextmenu', e => e.preventDefault()); // Block right-click menu
+
+  function undo() {
+    if (history.length > 0) {
+      redoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+      ctx.putImageData(history.pop(), 0, 0);
     }
+  }
 
-    function resizeCanvas() {
-      const temp = document.createElement('canvas');
-      temp.width = canvas.width; temp.height = canvas.height;
-      temp.getContext('2d').drawImage(canvas,0,0);
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      ctx.drawImage(temp,0,0);
+  function redo() {
+    if (redoStack.length > 0) {
+      history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+      ctx.putImageData(redoStack.pop(), 0, 0);
     }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+  }
 
-    canvas.addEventListener('mousedown', e => {
-      isDrawing = true;
-      saveState();
-      ctx.beginPath();
-      ctx.moveTo(e.clientX, e.clientY);
-      ctx.lineTo(e.clientX, e.clientY);
-      ctx.strokeStyle = currentColor;
-      ctx.lineWidth = brushSize;
-      ctx.lineCap = 'round';
-      ctx.stroke();
+  function setColor(c) {
+    currentColor = c;
+    document.querySelectorAll('.color-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.style.backgroundColor === c);
     });
+  }
 
-    canvas.addEventListener('mousemove', e => {
-      if (!isDrawing) return;
-      ctx.lineTo(e.clientX, e.clientY);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(e.clientX, e.clientY);
+  function setSize(s) {
+    brushSize = s;
+    document.querySelectorAll('.size-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.textContent.toLowerCase().includes(s === 4 ? 'thin' : 'thick'));
     });
+  }
 
-    canvas.addEventListener('mouseup', () => { isDrawing = false; ctx.beginPath(); });
-    canvas.addEventListener('mouseout', () => { isDrawing = false; ctx.beginPath(); });
+  function clearCanvas() {
+    saveState();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
 
-    function undo() { if (history.length) { redoStack.push(ctx.getImageData(0,0,canvas.width,canvas.height)); ctx.putImageData(history.pop(),0,0); } }
-    function redo() { if (redoStack.length) { history.push(ctx.getImageData(0,0,canvas.width,canvas.height)); ctx.putImageData(redoStack.pop(),0,0); } }
+  function toggleClickThrough() {
+    ipcRenderer.send('set-clickthrough', true);
+    setTimeout(() => ipcRenderer.send('set-clickthrough', false), 80);
+  }
 
-    function setColor(c) { currentColor = c; }
-    function setSize(s) { brushSize = s; }
-    function clearCanvas() { saveState(); ctx.clearRect(0,0,canvas.width,canvas.height); }
-    function toggleClickThrough() {
-      ipcRenderer.send('set-clickthrough', true);
-      setTimeout(() => ipcRenderer.send('set-clickthrough', false), 80);
+  // Opacity slider - only affects new draws
+  const opacitySlider = document.getElementById('opacitySlider');
+  const opacityValue = document.getElementById('opacityValue');
+
+  opacitySlider.addEventListener('input', (e) => {
+    currentOpacity = parseFloat(e.target.value);
+    opacityValue.textContent = currentOpacity.toFixed(1);
+  });
+
+  // Keyboard shortcuts for undo/redo
+  window.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'z') {
+      e.preventDefault();
+      undo();
     }
+    if (e.ctrlKey && e.key === 'y') {
+      e.preventDefault();
+      redo();
+    }
+  });
 
-    ipcRenderer.on('clear-canvas', clearCanvas);
-    ipcRenderer.on('set-color', (_,c) => setColor(c));
-    ipcRenderer.on('set-size', (_,s) => setSize(s));
-    ipcRenderer.on('toggle-clickthrough', toggleClickThrough);
-    ipcRenderer.on('undo', undo);
-    ipcRenderer.on('redo', redo);
-  </script>
+  // IPC listeners
+  ipcRenderer.on('clear-canvas', clearCanvas);
+  ipcRenderer.on('set-color', (_, c) => setColor(c));
+  ipcRenderer.on('set-size', (_, s) => setSize(s));
+  ipcRenderer.on('toggle-clickthrough', toggleClickThrough);
+
+  // Loading fade ONLY on first show
+  ipcRenderer.on('window-shown', () => {
+    if (!hasBeenShown) {
+      hasBeenShown = true;
+      setTimeout(() => {
+        loading.classList.add('hidden');
+      }, 1500);
+    }
+  });
+</script>
 </body>
 </html>

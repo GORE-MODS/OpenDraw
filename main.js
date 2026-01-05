@@ -1,11 +1,12 @@
 const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, dialog } = require('electron');
+const path = require('path');
 
 console.log('[OpenDraw] Starting up...');
 
 let mainWindow = null;
 let tray = null;
 
-// Fixed hotkeys (no remap for now)
+// Fixed hotkeys (no remap bullshit for now)
 const hotkeys = {
   toggle: 'Control+Shift+D',
   clear: 'Control+Shift+C',
@@ -65,8 +66,18 @@ function createWindow() {
 
 function createTray() {
   console.log('[OpenDraw] Creating tray icon...');
+  let icon;
+
   try {
-    // Tiny red fallback icon (1x1 PNG buffer)
+    const iconPath = path.join(__dirname, 'Logo.png');
+    icon = nativeImage.createFromPath(iconPath);
+
+    if (icon.isEmpty()) {
+      console.log('[OpenDraw] Logo.png invalid or missing - fallback to red square');
+      throw new Error('Invalid logo');
+    }
+  } catch (err) {
+    // Fallback tiny red square PNG buffer
     const fallbackBuffer = Buffer.from([
       0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
       0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
@@ -75,46 +86,56 @@ function createTray() {
       0x00, 0x03, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44,
       0xae, 0x42, 0x60, 0x82
     ]);
-
-    const icon = nativeImage.createFromBuffer(fallbackBuffer);
-
-    tray = new Tray(icon);
-
-    const contextMenu = Menu.buildFromTemplate([
-      { label: 'Toggle Overlay', click: () => mainWindow?.isVisible() ? mainWindow.hide() : mainWindow.showInactive() },
-      { label: 'Clear Canvas', click: () => mainWindow?.webContents.send('clear-canvas') },
-      { type: 'separator' },
-      {
-        label: 'Supported Hotkeys (list)',
-        click: () => {
-          const list = Object.keys(hotkeys).map(key => 
-            `${hotkeys[key]} → ${hotkeyDescriptions[key]}`
-          ).join('\n');
-
-          dialog.showMessageBox(mainWindow, {
-            type: 'info',
-            title: 'Supported Hotkeys',
-            message: 'Current hotkeys in OpenDraw:',
-            detail: list,
-            buttons: ['OK']
-          });
-        }
-      },
-      { type: 'separator' },
-      { label: 'Quit OpenDraw', click: () => app.quit() }
-    ]);
-
-    tray.setToolTip('OpenDraw');
-    tray.setContextMenu(contextMenu);
-
-    tray.on('click', () => {
-      mainWindow?.isVisible() ? mainWindow.hide() : mainWindow.showInactive();
-    });
-
-    console.log('[OpenDraw] Tray created successfully');
-  } catch (err) {
-    console.error('[OpenDraw] Tray creation failed:', err.message);
+    icon = nativeImage.createFromBuffer(fallbackBuffer);
   }
+
+  const trayIcon = icon.resize({ width: 16, height: 16 });
+
+  tray = new Tray(trayIcon);
+
+  const contextMenu = Menu.buildFromTemplate([
+    { label: 'Toggle Overlay', click: () => {
+      if (mainWindow) {
+        if (mainWindow.isVisible()) {
+          mainWindow.hide();
+        } else {
+          mainWindow.showInactive();
+          mainWindow.webContents.send('window-shown'); // Tell renderer to start loading fade
+        }
+      }
+    }},
+    { label: 'Clear Canvas', click: () => mainWindow?.webContents.send('clear-canvas') },
+    { type: 'separator' },
+    {
+      label: 'Supported Hotkeys (list)',
+      click: () => {
+        const list = Object.keys(hotkeys).map(key => 
+          `${hotkeys[key]} → ${hotkeyDescriptions[key]}`
+        ).join('\n');
+
+        dialog.showMessageBox(mainWindow, {
+          type: 'info',
+          title: 'Supported Hotkeys',
+          message: 'Current hotkeys in OpenDraw:',
+          detail: list,
+          buttons: ['OK']
+        });
+      }
+    },
+    { type: 'separator' },
+    { label: 'Quit OpenDraw', click: () => app.quit() }
+  ]);
+
+  tray.setToolTip('OpenDraw');
+  tray.setContextMenu(contextMenu);
+
+  tray.on('click', () => {
+    if (mainWindow) {
+      mainWindow.isVisible() ? mainWindow.hide() : mainWindow.showInactive();
+    }
+  });
+
+  console.log('[OpenDraw] Tray created with Logo.png (or fallback)');
 }
 
 function registerAllHotkeys() {
@@ -122,7 +143,12 @@ function registerAllHotkeys() {
 
   globalShortcut.register(hotkeys.toggle, () => {
     if (mainWindow) {
-      mainWindow.isVisible() ? mainWindow.hide() : mainWindow.showInactive();
+      if (mainWindow.isVisible()) {
+        mainWindow.hide();
+      } else {
+        mainWindow.showInactive();
+        mainWindow.webContents.send('window-shown'); // Trigger loading fade on first show
+      }
     }
   });
 

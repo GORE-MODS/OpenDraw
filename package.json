@@ -1,12 +1,43 @@
 {
   "name": "opendraw",
-  "version": "1.0.0",
+  "version": "1.0.3",
+  "description": "OpenDraw - transparent on-screen drawing overlay for streamers and creators",
   "main": "main.js",
-  "scripts": {
-  "start": "electron . --enable-transparent-visuals --disable-gpu --ozone-platform=x11 --no-sandbox"
+  "author": "Gore-Tech",
+  "license": "MIT",
+"scripts": {
+  "start": "electron . --enable-transparent-visuals --ozone-platform=x11 --no-sandbox --disable-gpu --in-process-gpu",
+  "dist": "electron-builder --linux snap"
 },
-  "dependencies": {
-    "electron": "^39.2.7",
-    "electron-store": "^8.2.0"
+  "devDependencies": {
+    "electron": "latest",
+    "electron-builder": "latest"
+  },
+  "build": {
+    "appId": "com.goretech.opendraw",
+    "productName": "OpenDraw",
+    "icon": "Logo.png",
+    "linux": {
+      "target": "snap",
+      "category": "Utility"
+    },
+    "snap": {
+      "summary": "OpenDraw - transparent drawing overlay",
+      "description": "Open-source tool to draw on screen over games, desktop, streams. Hotkeys, click-through, undo/redo.",
+      "grade": "stable",
+      "confinement": "strict",
+      "base": "core22",
+      "plugs": [
+        "desktop",
+        "desktop-legacy",
+        "home",
+        "x11",
+        "wayland",
+        "opengl",
+        "audio-playback",
+        "network",
+        "pulseaudio"
+      ]
+    }
   }
 }
