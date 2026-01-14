@@ -109,7 +109,7 @@ Toolbar (top-left when visible) has buttons for the same stuff + extra colors.
 
    # Website
 
-   https//opendraw.42web.io/
+   https://opendraw.42web.io/
    
    # License
    
